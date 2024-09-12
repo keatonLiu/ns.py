@@ -50,7 +50,6 @@ class PacketSink:
         self.rec_arrivals = rec_arrivals
         self.absolute_arrivals = absolute_arrivals
         self.waits = dd(list)
-        self.arrivals = dd(list)
         self.packets_received = dd(lambda: 0)
         self.bytes_received = dd(lambda: 0)
         self.packet_sizes = dd(list)
@@ -77,7 +76,7 @@ class PacketSink:
             self.packet_sizes[rec_index].append(packet.size)
             self.packet_times[rec_index].append(packet.time)
             self.perhop_times[rec_index].append(packet.perhop_time)
-            self.arrivals[rec_index].append(self.env.now)
+            # self.arrivals[rec_index].append(self.env.now)
 
         if self.rec_arrivals:
             self.arrivals[rec_index].append(now)

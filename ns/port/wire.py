@@ -5,6 +5,7 @@ capacity limit can be modeled using an upstream port or server element in
 the network.
 """
 import random
+from functools import partial
 
 import simpy
 
@@ -77,3 +78,13 @@ class Wire:
 
         packet.current_time = self.env.now
         return self.store.put(packet)
+
+
+class GaussianDelayWire(Wire):
+    def __init__(self, env, delay: float, sigma: float, loss_dist=None, wire_id=0, debug=False):
+        self.delay = delay
+        self.sigma = sigma
+        super().__init__(env, partial(random.gauss, delay, sigma), loss_dist, wire_id, debug)
+
+    def __add__(self, other):
+        return GaussianDelayWire(self.env, self.delay + other.delay, self.sigma + other.sigma, wire_id=self.wire_id)
