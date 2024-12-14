@@ -1,3 +1,5 @@
 simpy
 networkx
 pyyaml
+matplotlib
+seaborn

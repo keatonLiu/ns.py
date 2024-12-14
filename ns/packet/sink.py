@@ -99,11 +99,11 @@ class PacketSink:
                 time_elapsed = self.env.now - (
                     self.packet_times[rec_index][-10] + self.waits[rec_index][-10]
                 )
-                print(
-                    "Average throughput (last 10 packets): {:.2f} bytes/second.".format(
-                        float(bytes_received) / time_elapsed
-                    )
-                )
+                # print(
+                #     "Average throughput (last 10 packets): {:.2f} bytes/second.".format(
+                #         float(bytes_received) / time_elapsed
+                #     )
+                # )
 
         self.packets_received[rec_index] += 1
         self.bytes_received[rec_index] += packet.size

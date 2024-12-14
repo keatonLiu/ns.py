@@ -3,6 +3,7 @@ A basic example that connects two packet generators to a network wire with
 a propagation delay distribution, and then to a packet sink.
 """
 import dataclasses
+import json
 import math
 from random import expovariate
 from typing import Optional
@@ -10,7 +11,7 @@ from typing import Optional
 import simpy
 from matplotlib.figure import Figure
 
-from ns.packet.PulsingPacketGenerator import PulsingPacketGenerator
+from ns.packet.PulsingPacketGenerator import PulsingPacketGenerator, PendingPulsingPacketGenerator
 from ns.packet.sink import PacketSink
 from ns.port.wire import GaussianDelayWire
 import matplotlib.pyplot as plt
@@ -32,6 +33,7 @@ class SimulateResult:
 def plot(results: list[SimulateResult], window_size=0.01):
     sns.set_theme(style="whitegrid")
 
+    print('start plot')
     fig: Figure
     fig, axs = plt.subplots(int(math.ceil(len(results) / 2)), 2, figsize=(8, 6), dpi=120)
     fig.suptitle("Packet Send and Receive Distribution")
@@ -76,6 +78,7 @@ def plot(results: list[SimulateResult], window_size=0.01):
     plt.savefig(f'results/graphs/packet_send_receive.png', bbox_inches='tight')
     plt.show()
 
+
 def layers_plot(results: list[SimulateResult], window_size=0.01):
     sns.set_theme(style="whitegrid")
 
@@ -119,7 +122,7 @@ def layers_plot(results: list[SimulateResult], window_size=0.01):
         # for ax in fig.get_axes():
         #     ax.label_outer()
     fig.tight_layout()
-    plt.savefig(f'results/graphs/layers_compare.png', bbox_inches='tight')
+    plt.savefig(f'results/graphs/layers_compare.svg', bbox_inches='tight')
     plt.show()
 
 
@@ -131,15 +134,15 @@ class ODnsSimulator:
     def packet_size_dist():
         return int(expovariate(0.01))
 
-    def simulate(self, sigma=0.02, num_paths=10, layers=5):
-        norm_gen = NormPacketGenerator(0.100, 3.000, 0.010, 3.000)
+    def simulate(self, sigma=20, num_paths=10, layers=5):
+        norm_gen = NormPacketGenerator(100, 3000, 10, 3000)
         wires: list[Optional[GaussianDelayWire]] = [None for _ in range(num_paths)]
         paths = []
         for i in range(layers):
             for j in range(num_paths):
-                delay = norm_gen.get_next()
+                stt = norm_gen.get_next()
                 # each wire has a gaussian distribution of delays
-                wires[j] = GaussianDelayWire(self.env, delay, sigma, wire_id=j)
+                wires[j] = GaussianDelayWire(self.env, stt, sigma, wire_id=j)
             if not paths:
                 paths = wires
             else:
@@ -153,25 +156,26 @@ class ODnsSimulator:
         step = len(paths) // 1000
         if step == 0:
             step = 1
-        paths = sorted(paths, key=lambda path: path.delay)[::step]
+        paths = sorted(paths, key=lambda path: path.stt)[::step]
 
         ps = PacketSink(self.env, rec_flow_ids=False, debug=True)
-        pg = PulsingPacketGenerator(self.env, "flow_1", self.packet_size_dist, finish=10, flow_id=0)
+        pg = PendingPulsingPacketGenerator(self.env, "flow_1", self.packet_size_dist,
+                                           flow_id=0)
         pg.outs = paths
         for path in paths:
             path.out = ps
-        self.env.run(until=3500)
+        self.env.run(until=30000)
 
         print(
             "Packet send times in flow 1: "
             + ", ".join(["{:.3f}".format(x) for x in pg.sends])
         )
-        print(len(pg.sends))
+        print(f"Total packets sent: {len(pg.sends)}")
         print(
             "Packet arrival times in flow 1: "
             + ", ".join(["{:.3f}".format(x) for x in ps.arrivals["flow_1"]])
         )
-        print(len(ps.arrivals["flow_1"]))
+        print(f"Total packets arrived: {len(ps.arrivals['flow_1'])}")
 
         return SimulateResult(pg.sends, ps.arrivals["flow_1"], sigma, layers)
 
@@ -180,5 +184,10 @@ if __name__ == '__main__':
     env = simpy.Environment()
     # results = [ODnsSimulator().simulate(sigma=s) for s in [0.02, 0.04, 0.06, 0.08]]
     # plot(results)
+
+    for l in [2, 3, 4, 5]:
+        results = [ODnsSimulator().simulate(layers=l) for _ in range(10)]
+        with open(f'results/plot_{l}.json', 'w') as f:
+            json.dump([dataclasses.asdict(result) for result in results], f)
     results = [ODnsSimulator().simulate(layers=l) for l in [2, 3, 4, 5]]
     layers_plot(results)

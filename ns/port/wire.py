@@ -81,10 +81,10 @@ class Wire:
 
 
 class GaussianDelayWire(Wire):
-    def __init__(self, env, delay: float, sigma: float, loss_dist=None, wire_id=0, debug=False):
-        self.delay = delay
+    def __init__(self, env, stt: float, sigma: float, loss_dist=None, wire_id=0, debug=False):
+        self.stt = stt
         self.sigma = sigma
-        super().__init__(env, partial(random.gauss, delay, sigma), loss_dist, wire_id, debug)
+        super().__init__(env, partial(random.gauss, stt, sigma), loss_dist, wire_id, debug)
 
     def __add__(self, other):
-        return GaussianDelayWire(self.env, self.delay + other.delay, self.sigma + other.sigma, wire_id=self.wire_id)
+        return GaussianDelayWire(self.env, self.stt + other.stt, self.sigma + other.sigma, wire_id=self.wire_id)
