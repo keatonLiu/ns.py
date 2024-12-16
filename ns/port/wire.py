@@ -9,6 +9,8 @@ from functools import partial
 
 import simpy
 
+from ns.packet.packet import PendingPacket
+
 
 class Wire:
     """ Implements a network wire (cable) that introduces a propagation delay.
@@ -52,7 +54,8 @@ class Wire:
                 # The amount of time for this packet to stay in my store
                 queued_time = self.env.now - packet.current_time
                 delay = self.delay_dist()
-
+                if isinstance(packet, PendingPacket):
+                    delay += packet.delay
                 # If queued time for this packet is greater than its propagation delay,
                 # it implies that the previous packet had experienced a longer delay.
                 # Since out-of-order delivery is not supported in simulation, deliver

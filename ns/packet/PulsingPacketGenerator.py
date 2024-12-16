@@ -1,7 +1,7 @@
 import random
 from typing import Optional
 
-from ns.packet.packet import Packet
+from ns.packet.packet import Packet, PendingPacket
 from ns.port.wire import GaussianDelayWire
 
 
@@ -35,7 +35,7 @@ class PulsingPacketGenerator:
         # Calculate the diff between the delays of the wires
         for i in range(1, len(outs)):
             intervals.append(outs[i - 1].stt - outs[i].stt)
-
+        print(f'intervals: {intervals}')
         wire_index = 0
         while self.env.now < self.finish:
             if wire_index >= len(outs):
@@ -128,12 +128,13 @@ class PendingPulsingPacketGenerator(PulsingPacketGenerator):
         for i, path in enumerate(prepared_list):
             if self.finish is not None and self.env.now >= self.finish:
                 return
-            packet = Packet(
+            packet = PendingPacket(
                 self.env.now,
                 self.size_dist(),
                 self.packets_sent,
                 src=self.element_id,
                 flow_id=self.flow_id,
+                delay=path['delay'],
             )
             self.sends.append(path['send_time'])
             path['wire'].put(packet)
